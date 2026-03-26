@@ -1,0 +1,18 @@
+packages:
+  "recharts": "Data visualization for survey results"
+  "framer-motion": "Smooth page transitions and micro-interactions"
+  "react-hook-form": "Accessible and performant form state management"
+  "@hookform/resolvers": "Zod integration for form validation"
+  "zod": "Schema validation for form inputs"
+  "lucide-react": "Clean, consistent iconography"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to merge tailwind classes safely"
+
+images:
+  - path: "artifacts/survey-app/public/images/hero-abstract.png"
+    description: "Extremely subtle, light neutral, clean minimal abstract geometric background. Very soft light grays and whites. Academic, professional, modern."
+    aspect_ratio: "16:9"
+
+notes:
+  - React Query hooks are imported from @workspace/api-client-react
+  - Azure Static Web Apps config included for deployment

@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: College Student Lifestyle Survey API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: survey
+    description: Survey operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /survey/submit:
+    post:
+      operationId: submitSurvey
+      tags: [survey]
+      summary: Submit a survey response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SurveySubmission"
+      responses:
+        "201":
+          description: Survey submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SurveySubmitResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /survey/results:
+    get:
+      operationId: getSurveyResults
+      tags: [survey]
+      summary: Get aggregated survey results
+      responses:
+        "200":
+          description: Aggregated survey results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SurveyResults"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +82,142 @@ components:
           type: string
       required:
         - status
-
+    SurveySubmission:
+      type: object
+      properties:
+        after_class_activity:
+          type: string
+          description: What student usually does after classes
+        state:
+          type: string
+          description: US state the student is from
+        year_in_college:
+          type: string
+          enum: ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year or More"]
+          description: Current year in college
+        activities:
+          type: array
+          items:
+            type: string
+          description: Activities the student enjoys
+        other_activity:
+          type: string
+          nullable: true
+          description: Description if "Other" activity was selected
+        study_hours:
+          type: string
+          enum: ["0–5 hours", "6–10 hours", "11–15 hours", "16+ hours"]
+          description: Hours spent studying per week
+        study_preference:
+          type: string
+          enum: ["Alone", "With Others", "Both"]
+          description: Preference for studying alone or with others
+      required:
+        - after_class_activity
+        - state
+        - year_in_college
+        - activities
+        - study_hours
+        - study_preference
+    SurveySubmitResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        message:
+          type: string
+      required:
+        - id
+        - message
+    ActivityCount:
+      type: object
+      properties:
+        activity:
+          type: string
+        count:
+          type: integer
+      required:
+        - activity
+        - count
+    StateCount:
+      type: object
+      properties:
+        state:
+          type: string
+        count:
+          type: integer
+        percentage:
+          type: number
+      required:
+        - state
+        - count
+        - percentage
+    StudyHoursCount:
+      type: object
+      properties:
+        range:
+          type: string
+        count:
+          type: integer
+      required:
+        - range
+        - count
+    StudyPreferenceCount:
+      type: object
+      properties:
+        preference:
+          type: string
+        count:
+          type: integer
+      required:
+        - preference
+        - count
+    YearCount:
+      type: object
+      properties:
+        year:
+          type: string
+        count:
+          type: integer
+      required:
+        - year
+        - count
+    SurveyResults:
+      type: object
+      properties:
+        total_responses:
+          type: integer
+        year_in_college:
+          type: array
+          items:
+            $ref: "#/components/schemas/YearCount"
+        top_activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityCount"
+        top_states:
+          type: array
+          items:
+            $ref: "#/components/schemas/StateCount"
+        study_hours:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudyHoursCount"
+        study_preference:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudyPreferenceCount"
+      required:
+        - total_responses
+        - year_in_college
+        - top_activities
+        - top_states
+        - study_hours
+        - study_preference
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
