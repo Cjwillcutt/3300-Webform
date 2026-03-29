@@ -30,3 +30,5 @@ timeoutMs = 20000
 [userenv.shared]
 SUPABASE_URL = "https://irtwltvhvooikadprtro.supabase.co"
 SUPABASE_PROJECT_REF = "irtwltvhvooikadprtro"
+VITE_SUPABASE_URL = "https://irtwltvhvooikadprtro.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlydHdsdHZodm9vaWthZHBydHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTUwNTUsImV4cCI6MjA5MDM3MTA1NX0.HRnu_l91qJ5gHff6WKxiSNCXT9dOTEobFF_Kdy9VbXI"
