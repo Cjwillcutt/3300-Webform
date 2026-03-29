@@ -1,6 +1,6 @@
 -- Run this in your Supabase dashboard → SQL Editor
 
--- Create the survey_responses table
+-- Create the survey_responses table (safe to run even if it already exists)
 CREATE TABLE IF NOT EXISTS survey_responses (
   id SERIAL PRIMARY KEY,
   after_class_activity TEXT NOT NULL,
@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS survey_responses (
 
 -- Enable Row Level Security
 ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "allow_public_insert" ON survey_responses;
+DROP POLICY IF EXISTS "allow_public_select" ON survey_responses;
 
 -- Allow anyone to INSERT (submit a survey)
 CREATE POLICY "allow_public_insert"
