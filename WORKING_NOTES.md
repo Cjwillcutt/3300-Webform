@@ -317,6 +317,20 @@ Update vite.config to support Azure build environment
 
 **Next step:** Push to GitHub, create Azure Static Web App, add 3 GitHub Secrets, trigger first deployment.
 
+### 2026-05-05
+
+**Accomplished:**
+- Connected Replit project to GitHub repo (`Cjwillcutt/3300-Webform`)
+- Confirmed `README.md`, `WORKING_NOTES.md`, and `LICENSE` are committed locally
+- Resolved folder rename issue (`CampusLife-Survey` → reverted to `survey-app`) that broke the dev server workflow
+- Resolved port conflict (22596) caused by stale Vite process after folder rename
+
+**Left incomplete:**
+- GitHub push of all committed files (use Git panel → Commit & Push)
+- Azure portal setup
+
+**Next step:** Complete GitHub push via Replit Git panel, then set up Azure Static Web App.
+
 ---
 
 ## Useful References
