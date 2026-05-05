@@ -243,7 +243,7 @@ export default function Results() {
                       contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                       formatter={(value: number, _: string, props: { payload: { percentage: number } }) => [`${value} (${props.payload.percentage}%)`, "Responses"]}
                     />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24} label={{ position: "right", fill: "hsl(var(--muted-foreground))", fontSize: 12, formatter: (_: number, entry: { payload: { percentage: number } }) => `${entry.payload.percentage}%` }}>
+                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24} label={{ position: "right", fill: "hsl(var(--muted-foreground))", fontSize: 12, formatter: (_: number, entry: { payload?: { percentage?: number } }) => entry?.payload?.percentage != null ? `${entry.payload.percentage}%` : "" }}>
                       {results.top_states.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
