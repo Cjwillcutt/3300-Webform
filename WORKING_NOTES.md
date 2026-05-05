@@ -331,6 +331,8 @@ Update vite.config to support Azure build environment
 
 **Next step:** Complete GitHub push via Replit Git panel, then set up Azure Static Web App.
 
+> Note: Push attempted via Replit Git panel — retrying.
+
 ---
 
 ## Useful References
