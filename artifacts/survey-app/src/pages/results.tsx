@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Component, type ReactNode } from "react";
 import { Layout } from "@/components/layout";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -6,6 +6,24 @@ import {
 } from "recharts";
 import { AlertCircle, RefreshCcw, Users } from "lucide-react";
 import { supabase, type SurveyResponse } from "@/lib/supabase";
+
+class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+          Chart unavailable
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE"];
 const PIE_COLORS = ["#2563EB", "#60A5FA", "#93C5FD"];
@@ -25,12 +43,10 @@ type Results = {
 function computeResults(rows: SurveyResponse[]): Results {
   const total = rows.length;
 
-  // Year in college
   const yearMap: Record<string, number> = {};
   for (const r of rows) yearMap[r.year_in_college] = (yearMap[r.year_in_college] ?? 0) + 1;
   const year_in_college = YEAR_ORDER.map(y => ({ year: y, count: yearMap[y] ?? 0 })).filter(y => y.count > 0);
 
-  // Activities — expand "Other" into the text they entered, normalize casing
   const actMap: Record<string, number> = {};
   for (const r of rows) {
     for (const act of r.activities) {
@@ -46,7 +62,6 @@ function computeResults(rows: SurveyResponse[]): Results {
     .map(([activity, count]) => ({ activity, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Top states
   const stateMap: Record<string, number> = {};
   for (const r of rows) stateMap[r.state] = (stateMap[r.state] ?? 0) + 1;
   const top_states = Object.entries(stateMap)
@@ -54,18 +69,18 @@ function computeResults(rows: SurveyResponse[]): Results {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Study hours
   const hoursMap: Record<string, number> = {};
   for (const r of rows) hoursMap[r.study_hours] = (hoursMap[r.study_hours] ?? 0) + 1;
   const study_hours = HOURS_ORDER.map(h => ({ range: h, count: hoursMap[h] ?? 0 })).filter(h => h.count > 0);
 
-  // Study preference
   const prefMap: Record<string, number> = {};
   for (const r of rows) prefMap[r.study_preference] = (prefMap[r.study_preference] ?? 0) + 1;
   const study_preference = Object.entries(prefMap).map(([preference, count]) => ({ preference, count }));
 
   return { total_responses: total, year_in_college, top_activities, top_states, study_hours, study_preference };
 }
+
+const tooltipStyle = { borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" };
 
 export default function Results() {
   const [results, setResults] = useState<Results | null>(null);
@@ -76,9 +91,7 @@ export default function Results() {
     setIsLoading(true);
     setIsError(false);
     try {
-      const { data, error } = await supabase
-        .from("survey_responses")
-        .select("*");
+      const { data, error } = await supabase.from("survey_responses").select("*");
       if (error) throw error;
       setResults(computeResults((data as SurveyResponse[]) ?? []));
     } catch {
@@ -88,9 +101,7 @@ export default function Results() {
     }
   };
 
-  useEffect(() => {
-    fetchResults();
-  }, []);
+  useEffect(() => { fetchResults(); }, []);
 
   if (isLoading) {
     return (
@@ -157,15 +168,17 @@ export default function Results() {
             <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
               <h3 className="text-lg font-display font-bold mb-6">Year in College</h3>
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={results.year_in_college} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
-                    <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={60} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartErrorBoundary>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={results.year_in_college} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                      <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartErrorBoundary>
               </div>
             </div>
 
@@ -173,15 +186,17 @@ export default function Results() {
             <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
               <h3 className="text-lg font-display font-bold mb-6">Most Popular Activities</h3>
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={results.top_activities} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <YAxis type="category" dataKey="activity" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} width={110} />
-                    <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
-                    <Bar dataKey="count" fill="#3B82F6" radius={[0, 6, 6, 0]} maxBarSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartErrorBoundary>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={results.top_activities} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                      <YAxis type="category" dataKey="activity" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} width={110} />
+                      <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="count" fill="#3B82F6" radius={[0, 6, 6, 0]} maxBarSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartErrorBoundary>
               </div>
             </div>
 
@@ -189,15 +204,17 @@ export default function Results() {
             <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
               <h3 className="text-lg font-display font-bold mb-6">Study Time Per Week</h3>
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={results.study_hours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
-                    <Bar dataKey="count" fill="#60A5FA" radius={[6, 6, 0, 0]} maxBarSize={60} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartErrorBoundary>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={results.study_hours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                      <RechartsTooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="count" fill="#60A5FA" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartErrorBoundary>
               </div>
             </div>
 
@@ -205,27 +222,29 @@ export default function Results() {
             <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
               <h3 className="text-lg font-display font-bold mb-6">Study Preference</h3>
               <div className="h-[300px] w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={results.study_preference}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="count"
-                      nameKey="preference"
-                      stroke="none"
-                    >
-                      {results.study_preference.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "14px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <ChartErrorBoundary>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={results.study_preference}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="count"
+                        nameKey="preference"
+                        stroke="none"
+                      >
+                        {results.study_preference.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip contentStyle={tooltipStyle} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "14px" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartErrorBoundary>
               </div>
             </div>
 
@@ -233,23 +252,38 @@ export default function Results() {
             <div className="bg-card p-6 rounded-3xl border border-border shadow-sm lg:col-span-2">
               <h3 className="text-lg font-display font-bold mb-6">Top States Represented</h3>
               <div className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={results.top_states} layout="vertical" margin={{ top: 10, right: 60, left: 40, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-                    <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="state" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--foreground))", fontWeight: 500, fontSize: 13 }} width={120} />
-                    <RechartsTooltip
-                      cursor={{ fill: "hsl(var(--muted)/0.5)" }}
-                      contentStyle={{ borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                      formatter={(value: number, _: string, props: { payload: { percentage: number } }) => [`${value} (${props.payload.percentage}%)`, "Responses"]}
-                    />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24} label={{ position: "right", fill: "hsl(var(--muted-foreground))", fontSize: 12, formatter: (_: number, entry: { payload?: { percentage?: number } }) => entry?.payload?.percentage != null ? `${entry.payload.percentage}%` : "" }}>
-                      {results.top_states.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartErrorBoundary>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={results.top_states} layout="vertical" margin={{ top: 10, right: 60, left: 40, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="state" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--foreground))", fontWeight: 500, fontSize: 13 }} width={120} />
+                      <RechartsTooltip
+                        cursor={{ fill: "hsl(var(--muted)/0.5)" }}
+                        contentStyle={tooltipStyle}
+                        formatter={(value: number, _: string, props: { payload?: { percentage?: number } }) =>
+                          [`${value}${props?.payload?.percentage != null ? ` (${props.payload.percentage}%)` : ""}`, "Responses"]
+                        }
+                      />
+                      <Bar
+                        dataKey="count"
+                        radius={[0, 6, 6, 0]}
+                        barSize={24}
+                        label={{
+                          position: "right",
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12,
+                          formatter: (_: number, entry: { payload?: { percentage?: number } }) =>
+                            entry?.payload?.percentage != null ? `${entry.payload.percentage}%` : ""
+                        }}
+                      >
+                        {results.top_states.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartErrorBoundary>
               </div>
             </div>
 
